@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WIF Tech Pack Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #F7F6F2;
+    --surface:  #FFFFFF;
+    --border:   #E2E0D8;
+    --border2:  #C8C5BC;
+    --text:     #1A1917;
+    --muted:    #6B6860;
+    --hint:     #A09D96;
+    --accent:   #1A1917;
+    --accent-fg:#FFFFFF;
+    --danger:   #C0392B;
+    --warn-bg:  #FEF9EC;
+    --warn-border:#E8C93A;
+    --success:  #2E7D4F;
+    --radius:   6px;
+    --radius-lg:10px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  .shell {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* ── HEADER ── */
+  .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 36px;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-mark {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-mark svg { width: 18px; height: 18px; fill: #fff; }
+  .logo-text h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .logo-text p  { font-size: 12px; color: var(--muted); }
+  .header-badge {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--muted);
+    background: var(--border);
+    padding: 4px 10px; border-radius: 20px;
+  }
+
+  /* ── SECTION ── */
+  .section { margin-bottom: 32px; }
+  .section-head {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--muted);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  /* ── GRID ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .grid-1 { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 12px; }
+
+  /* ── FIELD ── */
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field > label { font-size: 12px; font-weight: 500; color: var(--muted); }
+  .field input, .field select, .field textarea {
+    font-size: 13px; padding: 8px 11px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    width: 100%;
+    transition: border-color 0.15s;
+    font-family: inherit;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none; border-color: var(--accent);
+  }
+  .field input.err, .field select.err { border-color: var(--danger); }
+  .field textarea { resize: vertical; min-height: 64px; }
+  .err-msg { font-size: 11px; color: var(--danger); display: none; }
+  .err-msg.show { display: block; }
+
+  /* ── DISPLAY BOXES ── */
+  .display-box {
+    font-size: 13px; font-weight: 600;
+    padding: 8px 11px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Menlo', 'Courier New', monospace;
+    letter-spacing: 0.02em;
+    min-height: 36px;
+    display: flex; align-items: center;
+  }
+  .display-box.folder {
+    font-size: 11px; font-weight: 400;
+    color: var(--muted); word-break: break-all;
+    align-items: flex-start; padding-top: 9px;
+  }
+
+  /* ── PILLS ── */
+  .pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill {
+    padding: 5px 13px; border-radius: 20px;
+    border: 1px solid var(--border);
+    font-size: 12px; font-weight: 500;
+    cursor: pointer; color: var(--muted);
+    background: var(--surface);
+    user-select: none;
+    transition: all 0.12s;
+  }
+  .pill:hover { border-color: var(--border2); color: var(--text); }
+  .pill.on {
+    background: var(--accent); color: var(--accent-fg);
+    border-color: var(--accent);
+  }
+
+  /* ── LOCATION CARDS ── */
+  .loc-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .loc-card.active { border-color: var(--border2); }
+  .loc-card-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 13px 16px;
+    cursor: pointer;
+    background: var(--surface);
+  }
+  .loc-card-head:hover { background: var(--bg); }
+  .loc-card-head input[type=checkbox] {
+    width: 16px; height: 16px;
+    accent-color: var(--accent); cursor: pointer; flex-shrink: 0;
+  }
+  .loc-card-head .loc-name { font-size: 13px; font-weight: 600; }
+  .loc-card-head .loc-summary { font-size: 12px; color: var(--muted); margin-left: auto; }
+  .loc-body {
+    display: none; padding: 16px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .loc-body.open { display: block; }
+
+  /* ── COLOR TABLE ── */
+  .color-table-head {
+    display: grid;
+    grid-template-columns: 28px 1fr 1fr 32px 28px;
+    gap: 8px; align-items: center;
+    font-size: 11px; font-weight: 500; color: var(--hint);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 0 0 6px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 6px;
+  }
+  .color-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 1fr 32px 28px;
+    gap: 8px; align-items: center;
+    margin-bottom: 6px;
+  }
+  .layer-badge {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: var(--muted);
+    flex-shrink: 0;
+  }
+  .color-row input {
+    font-size: 12px; padding: 6px 9px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text); width: 100%;
+    font-family: inherit;
+  }
+  .color-row input:focus { outline: none; border-color: var(--accent); }
+  .color-row input.pms-input { font-family: 'Menlo', monospace; font-size: 11px; }
+  .swatch {
+    width: 32px; height: 28px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg);
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .rm-btn {
+    width: 28px; height: 28px;
+    border: none; background: transparent;
+    color: var(--hint); cursor: pointer;
+    font-size: 18px; line-height: 1;
+    border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .rm-btn:hover { background: #FEE; color: var(--danger); }
+
+  .btn-add-color {
+    margin-top: 8px;
+    font-size: 12px; font-weight: 500;
+    padding: 6px 12px;
+    border: 1px dashed var(--border2);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .btn-add-color:hover { border-color: var(--accent); color: var(--accent); background: var(--bg); }
+
+  /* ── CALLOUT ROW ── */
+  .callout-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+  .callout-item > label { font-size: 12px; font-weight: 500; color: var(--muted); display: block; margin-bottom: 6px; }
+
+  /* ── WARN BOX ── */
+  .warn-box {
+    background: var(--warn-bg); border: 1px solid var(--warn-border);
+    border-radius: var(--radius); padding: 10px 14px;
+    font-size: 12px; color: #7A6010; margin-top: 12px;
+  }
+  .warn-box strong { color: #5A4008; }
+
+  /* ── SUBMIT ── */
+  .submit-section {
+    position: sticky; bottom: 0;
+    background: rgba(247,246,242,0.95);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid var(--border);
+    padding: 16px 0;
+    display: flex; gap: 12px; align-items: center;
+  }
+  .btn-generate {
+    padding: 11px 28px;
+    background: var(--accent); color: var(--accent-fg);
+    border: none; border-radius: var(--radius);
+    font-size: 14px; font-weight: 600;
+    cursor: pointer; letter-spacing: -0.01em;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn-generate:hover { opacity: 0.85; }
+  .btn-generate:active { transform: scale(0.98); }
+  .btn-generate:disabled { opacity: 0.4; cursor: not-allowed; }
+  .submit-note { font-size: 12px; color: var(--muted); }
+
+  /* ── SUCCESS BANNER ── */
+  .success-banner {
+    display: none;
+    background: #EAF6EE; border: 1px solid #7ECDA0;
+    border-radius: var(--radius-lg); padding: 20px 24px;
+    margin-top: 24px;
+  }
+  .success-banner.show { display: block; }
+  .success-banner h3 { font-size: 14px; font-weight: 600; color: var(--success); margin-bottom: 6px; }
+  .success-banner p { font-size: 13px; color: #3A7A56; line-height: 1.6; }
+  .success-banner ol { margin: 10px 0 0 18px; font-size: 13px; color: #3A7A56; line-height: 1.8; }
+
+  /* ── MISC ── */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+  .color-section-label {
+    font-size: 12px; font-weight: 500; color: var(--muted);
+    margin-bottom: 10px; margin-top: 16px;
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="site-header">
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="#fff" stroke-width="2"/><text x="10" y="14" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">W</text></svg>
+      </div>
+      <div class="logo-text">
+        <h1>Where I'm From</h1>
+        <p>Tech Pack Generator</p>
+      </div>
+    </div>
+    <span class="header-badge">Internal Tool</span>
+  </header>
+
+  <!-- JOB INFO -->
+  <div class="section">
+    <div class="section-head">Job info</div>
+    <div class="grid-3">
+      <div class="field">
+        <label>Year</label>
+        <select id="job-year"></select>
+      </div>
+      <div class="field">
+        <label>Month</label>
+        <select id="job-month">
+          <option value="01">01 — January</option><option value="02">02 — February</option>
+          <option value="03">03 — March</option><option value="04">04 — April</option>
+          <option value="05" selected>05 — May</option><option value="06">06 — June</option>
+          <option value="07">07 — July</option><option value="08">08 — August</option>
+          <option value="09">09 — September</option><option value="10">10 — October</option>
+          <option value="11">11 — November</option><option value="12">12 — December</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Sequential #</label>
+        <input type="number" id="job-seq" placeholder="e.g. 840" min="1" max="9999" />
+        <span class="err-msg" id="err-seq">Required</span>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label>Graphic name</label>
+        <input type="text" id="graphic-name" placeholder="e.g. Turkey Sandwich" />
+        <span class="err-msg" id="err-name">Required</span>
+      </div>
+      <div class="field">
+        <label>Job number (auto-generated)</label>
+        <div class="display-box" id="disp-jobnum">WIF—</div>
+      </div>
+    </div>
+    <div class="grid-1">
+      <div class="field">
+        <label>Folder name (auto-generated)</label>
+        <div class="display-box folder" id="disp-folder">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GARMENT -->
+  <div class="section">
+    <div class="section-head">Garment</div>
+    <div class="grid-3">
+      <div class="field">
+        <label>Style</label>
+        <select id="garment-style">
+          <option>Tee</option><option>Cotton Tee</option><option>Cotton Hoodie</option>
+          <option>Hoodie</option><option>Crew Sweatshirt</option>
+          <option>Cotton Crew Sweatshirt</option><option>Pullover Hoodie</option>
+          <option>Cropped Crew Sweatshirt</option><option>Easy Tee</option>
+          <option>Cropped Tee</option><option>High Neck Tank</option>
+          <option>Cotton Tank</option><option>Relaxed Tank</option>
+          <option>Youth Tee</option><option>Youth Hoodie</option>
+          <option>Toddler Tee</option><option>Onesie</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Body color</label>
+        <input type="text" id="body-color" placeholder="e.g. Navy" />
+        <span class="err-msg" id="err-color">Required</span>
+      </div>
+      <div class="field">
+        <label>Size range</label>
+        <select id="size-range">
+          <option>S–XXL</option><option>S–3XL</option><option>XS–XXL</option>
+          <option>XS–3XL</option><option>Youth S–XL</option>
+          <option>2T–5T</option><option>One Size</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label>License / brand</label>
+        <input type="text" id="license" placeholder="Leave blank if non-licensed" />
+      </div>
+      <div class="field">
+        <label>Art type</label>
+        <div class="pill-row" id="grp-arttype" style="margin-top:4px;">
+          <div class="pill on" data-val="Vector">Vector (Illustrator)</div>
+          <div class="pill" data-val="Texture">Texture (Photoshop)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRINT LOCATIONS -->
+  <div class="section">
+    <div class="section-head">Print locations</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Check each location that applies, then fill in its specs and ink colors.</p>
+    <div id="locations-wrap"></div>
+    <div class="warn-box" id="err-locations" style="display:none;">
+      <strong>Select at least one print location before generating.</strong>
+    </div>
+  </div>
+
+  <!-- NOTES -->
+  <div class="section">
+    <div class="section-head">Notes for print shop</div>
+    <div class="grid-1">
+      <div class="field">
+        <textarea id="notes" placeholder="Any special handling, rush notes, ink requirements, etc."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="success-banner" id="success-banner">
+    <h3>✓ Job package created</h3>
+    <p>Your zip file has downloaded. Here's what to do next:</p>
+    <ol>
+      <li>Unzip and move the folder to the server / Dropbox</li>
+      <li>Open your Photoshop artwork file</li>
+      <li>Run <strong>WIF-SEPS-MASTER.jsx</strong> via File → Scripts → Browse</li>
+      <li>When prompted, locate <strong>job-config.json</strong> inside the job folder</li>
+      <li>Follow the on-screen Color Range prompts for each ink</li>
+      <li>Script exports all .tif files into <strong>LINKS/</strong> automatically</li>
+      <li>Open the .ai template, place + embed each .tif, fill header row</li>
+      <li>Ops uploads and sends Dropbox link to print shop</li>
+    </ol>
+  </div>
+
+  <!-- STICKY SUBMIT -->
+  <div class="submit-section">
+    <button class="btn-generate" id="btn-generate">Generate &amp; Download ZIP</button>
+    <span class="submit-note" id="submit-note"></span>
+  </div>
+
+</div><!-- /shell -->
+
+<script>
+// ─────────────────────────────────────────────
+// PMS → approximate hex (screenprint palette)
+// ─────────────────────────────────────────────
+var PMS_HEX = {
+  'white':'#F5F3EE','black':'#1A1917','red':'#DA291C','navy':'#1B3A6B',
+  '200':'#BA0C2F','201':'#9B1B30','286':'#003DA5','287':'#00499A',
+  '289':'#1B3A6B','654':'#1D3461','653':'#4A6FA5','130':'#F2A900',
+  '143':'#F0A500','144':'#E07000','166':'#E8602C','485':'#DA291C',
+  '348':'#00843D','349':'#215732','7406':'#F5C400','7401':'#F5E6A3',
+  '7746':'#5A7A3A','7620':'#8B3A3A','4625':'#C4813A','1675':'#C45F1A',
+  '7689':'#5B8DB8','7694':'#8B6BAE','7716':'#00594C','7741':'#6B8F3E',
+  '430':'#97999B','877':'#8A8D8F','7527':'#D4C5A9','7540':'#5B6770',
+  '476':'#4E3629','478':'#7B5141','7511':'#D9B48F','7508':'#E8D5B0',
+  'underbase':'#F5F3EE',
+};
+
+function pmsToHex(raw) {
+  if (!raw) return '';
+  var k = raw.trim().toLowerCase().replace(/\s*c$/i,'').replace(/^pantone\s*/i,'');
+  return PMS_HEX[k] || '';
+}
+
+// ─────────────────────────────────────────────
+// LOCATION DEFINITIONS
+// ─────────────────────────────────────────────
+var LOCS = [
+  {id:'front',   label:'Front',        placement:'2.0" CF placement',             width:'15'},
+  {id:'back',    label:'Back',         placement:'2.0" from bottom of neck seam', width:'15'},
+  {id:'lchest',  label:'Left chest',   placement:'Standard Left Chest Print',     width:'3'},
+  {id:'rchest',  label:'Right chest',  placement:'Standard Right Chest Print',    width:'3'},
+  {id:'lsleeve', label:'Left sleeve',  placement:'2.0" from shoulder seam',       width:'3.75'},
+  {id:'rsleeve', label:'Right sleeve', placement:'2.0" from shoulder seam',       width:'3.75'},
+];
+
+var colorCtrs = {};
+
+// ─────────────────────────────────────────────
+// PILL GROUP HELPER
+// ─────────────────────────────────────────────
+function pillVal(groupEl) {
+  if (!groupEl) return '';
+  var on = groupEl.querySelector('.pill.on');
+  return on ? on.dataset.val : '';
+}
+
+function bindPillGroup(el) {
+  el.addEventListener('click', function(e) {
+    var p = e.target.closest('.pill');
+    if (!p || !el.contains(p)) return;
+    el.querySelectorAll('.pill').forEach(function(x){ x.classList.remove('on'); });
+    p.classList.add('on');
+    updateAll();
+  });
+}
+
+// ─────────────────────────────────────────────
+// COLOR ROW
+// ─────────────────────────────────────────────
+function addColorRow(locId, pmsVal, nameVal) {
+  colorCtrs[locId] = (colorCtrs[locId] || 0) + 1;
+  var uid = locId + '_' + colorCtrs[locId];
+  var container = document.getElementById('colors-' + locId);
+  var layerNum = container.children.length + 1;
+
+  var row = document.createElement('div');
+  row.className = 'color-row';
+
+  // layer badge
+  var badge = document.createElement('div');
+  badge.className = 'layer-badge';
+  badge.textContent = layerNum;
+
+  // PMS input
+  var pmsIn = document.createElement('input');
+  pmsIn.type = 'text';
+  pmsIn.className = 'pms-input';
+  pmsIn.placeholder = 'PMS e.g. 653 C';
+  pmsIn.value = pmsVal || '';
+  pmsIn.setAttribute('data-field', 'pms');
+
+  // Name input
+  var nameIn = document.createElement('input');
+  nameIn.type = 'text';
+  nameIn.placeholder = 'Color name';
+  nameIn.value = nameVal || '';
+  nameIn.setAttribute('data-field', 'name');
+
+  // Swatch
+  var sw = document.createElement('div');
+  sw.className = 'swatch';
+  sw.id = 'sw-' + uid;
+  if (pmsVal) {
+    var c = pmsToHex(pmsVal);
+    if (c) sw.style.background = c;
+  }
+
+  // Remove btn
+  var rm = document.createElement('button');
+  rm.className = 'rm-btn';
+  rm.title = 'Remove color';
+  rm.textContent = '×';
+  rm.addEventListener('click', function() {
+    row.remove();
+    renumberColors(locId);
+    updateAll();
+  });
+
+  // Swatch update on PMS input
+  pmsIn.addEventListener('input', function() {
+    var hex = pmsToHex(this.value);
+    sw.style.background = hex || 'var(--bg)';
+    updateAll();
+  });
+  nameIn.addEventListener('input', updateAll);
+
+  row.appendChild(badge);
+  row.appendChild(pmsIn);
+  row.appendChild(nameIn);
+  row.appendChild(sw);
+  row.appendChild(rm);
+  container.appendChild(row);
+  updateAll();
+}
+
+function renumberColors(locId) {
+  var rows = document.querySelectorAll('#colors-' + locId + ' .color-row');
+  rows.forEach(function(r, i) {
+    var b = r.querySelector('.layer-badge');
+    if (b) b.textContent = i + 1;
+  });
+}
+
+function getColors(locId) {
+  var rows = document.querySelectorAll('#colors-' + locId + ' .color-row');
+  var out = [];
+  rows.forEach(function(r, i) {
+    var pms  = r.querySelector('[data-field=pms]').value.trim();
+    var name = r.querySelector('[data-field=name]').value.trim();
+    if (pms || name) {
+      out.push({ layer: i + 1, pms: pms, name: name });
+    }
+  });
+  return out;
+}
+
+// ─────────────────────────────────────────────
+// BUILD LOCATION CARD
+// ─────────────────────────────────────────────
+function buildLocCard(loc) {
+  var card = document.createElement('div');
+  card.className = 'loc-card';
+  card.id = 'card-' + loc.id;
+
+  // HEAD
+  var head = document.createElement('div');
+  head.className = 'loc-card-head';
+
+  var chk = document.createElement('input');
+  chk.type = 'checkbox';
+  chk.id = 'chk-' + loc.id;
+
+  var name = document.createElement('span');
+  name.className = 'loc-name';
+  name.textContent = loc.label;
+
+  var summary = document.createElement('span');
+  summary.className = 'loc-summary';
+  summary.id = 'sum-' + loc.id;
+
+  head.appendChild(chk);
+  head.appendChild(name);
+  head.appendChild(summary);
+  card.appendChild(head);
+
+  // BODY
+  var body = document.createElement('div');
+  body.className = 'loc-body';
+  body.id = 'body-' + loc.id;
+
+  // Placement + width
+  var pr = document.createElement('div');
+  pr.className = 'grid-2';
+  pr.style.marginBottom = '0';
+  pr.innerHTML =
+    '<div class="field"><label>Placement description</label>' +
+    '<input type="text" id="placement-' + loc.id + '" value="' + loc.placement + '" /></div>' +
+    '<div class="field"><label>Graphic width (inches)</label>' +
+    '<input type="text" id="width-' + loc.id + '" value="' + loc.width + '" /></div>';
+  body.appendChild(pr);
+
+  // Callouts
+  var cr = document.createElement('div');
+  cr.className = 'callout-row';
+
+  // Underbase
+  var ua = document.createElement('div');
+  ua.className = 'callout-item';
+  ua.innerHTML = '<label>Underbase</label>';
+  var ug = document.createElement('div');
+  ug.className = 'pill-row';
+  ug.id = 'grp-under-' + loc.id;
+  [{val:'No underbase',label:'No'},{val:'Underbase required',label:'Yes'}].forEach(function(o,i) {
+    var p = document.createElement('div');
+    p.className = 'pill' + (i===0?' on':'');
+    p.dataset.val = o.val;
+    p.textContent = o.label;
+    ug.appendChild(p);
+  });
+  bindPillGroup(ug);
+  ua.appendChild(ug);
+  cr.appendChild(ua);
+
+  // Heat tap
+  var ha = document.createElement('div');
+  ha.className = 'callout-item';
+  ha.innerHTML = '<label>Heat tap</label>';
+  var hg = document.createElement('div');
+  hg.className = 'pill-row';
+  hg.id = 'grp-heat-' + loc.id;
+  [{val:'No heat tap',label:'None'},{val:'Heat tap – pierce only',label:'Pierce only'},{val:'Heat tap – full press',label:'Full press'}].forEach(function(o,i) {
+    var p = document.createElement('div');
+    p.className = 'pill' + (i===0?' on':'');
+    p.dataset.val = o.val;
+    p.textContent = o.label;
+    hg.appendChild(p);
+  });
+  bindPillGroup(hg);
+  ha.appendChild(hg);
+  cr.appendChild(ha);
+
+  body.appendChild(cr);
+
+  // Color section
+  var clabel = document.createElement('div');
+  clabel.className = 'color-section-label';
+  clabel.textContent = 'Ink colors — in print order (layer 1 = bottom)';
+  body.appendChild(clabel);
+
+  var thead = document.createElement('div');
+  thead.className = 'color-table-head';
+  thead.innerHTML = '<span>#</span><span>PMS</span><span>Color name</span><span></span><span></span>';
+  body.appendChild(thead);
+
+  var colorWrap = document.createElement('div');
+  colorWrap.id = 'colors-' + loc.id;
+  body.appendChild(colorWrap);
+
+  var addBtn = document.createElement('button');
+  addBtn.className = 'btn-add-color';
+  addBtn.textContent = '+ Add ink color';
+  addBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    addColorRow(loc.id);
+  });
+  body.appendChild(addBtn);
+
+  card.appendChild(body);
+
+  // Checkbox toggle
+  chk.addEventListener('change', function() {
+    var checked = chk.checked;
+    body.classList.toggle('open', checked);
+    card.classList.toggle('active', checked);
+    if (checked && document.querySelectorAll('#colors-' + loc.id + ' .color-row').length === 0) {
+      addColorRow(loc.id);
+      addColorRow(loc.id);
+    }
+    updateAll();
+  });
+
+  // Click header to toggle
+  head.addEventListener('click', function(e) {
+    if (e.target === chk) return;
+    chk.checked = !chk.checked;
+    chk.dispatchEvent(new Event('change'));
+  });
+
+  // Bind field inputs
+  body.querySelectorAll('input[type=text]').forEach(function(el) {
+    el.addEventListener('input', updateAll);
+  });
+
+  return card;
+}
+
+// ─────────────────────────────────────────────
+// JOB NUMBER + FOLDER NAME
+// ─────────────────────────────────────────────
+function totalColors() {
+  var n = 0;
+  LOCS.forEach(function(loc) {
+    var chk = document.getElementById('chk-' + loc.id);
+    if (chk && chk.checked) {
+      n += document.querySelectorAll('#colors-' + loc.id + ' .color-row').length;
+    }
+  });
+  return n;
+}
+
+function getJobNum() {
+  var yr  = document.getElementById('job-year').value;
+  var mo  = document.getElementById('job-month').value;
+  var seq = document.getElementById('job-seq').value;
+  var seqStr = seq ? String(parseInt(seq,10)).padStart(3,'0') : '___';
+  var c = totalColors();
+  return 'WIF' + yr + '_' + mo + '_' + seqStr + '_' + (c || '?');
+}
+
+function getJobShort() {
+  var name = document.getElementById('graphic-name').value.trim();
+  if (!name) return 'JOB';
+  return name.toUpperCase().replace(/[^A-Z0-9]/g,'').substring(0,8);
+}
+
+function getFolderName() {
+  var jn    = getJobNum();
+  var gname = document.getElementById('graphic-name').value.trim();
+  var color = document.getElementById('body-color').value.trim();
+  var style = document.getElementById('garment-style').value;
+  var parts = [jn];
+  if (gname) parts.push(gname);
+  if (color) parts.push(color);
+  parts.push(style);
+  return parts.join('_').replace(/ /g, '-').replace(/_-_/g,'_');
+}
+
+// ─────────────────────────────────────────────
+// UPDATE ALL DISPLAYS
+// ─────────────────────────────────────────────
+function updateAll() {
+  document.getElementById('disp-jobnum').textContent = getJobNum();
+  document.getElementById('disp-folder').textContent = getFolderName();
+
+  var activeLocs = LOCS.filter(function(l) {
+    var c = document.getElementById('chk-' + l.id);
+    return c && c.checked;
+  });
+
+  activeLocs.forEach(function(loc) {
+    var colors = getColors(loc.id);
+    var under  = pillVal(document.getElementById('grp-under-' + loc.id));
+    var parts  = [];
+    if (colors.length) parts.push(colors.length + ' color' + (colors.length!==1?'s':''));
+    if (under === 'Underbase required') parts.push('underbase');
+    document.getElementById('sum-' + loc.id).textContent = parts.join(' · ');
+  });
+
+  var c = totalColors();
+  var art = pillVal(document.getElementById('grp-arttype'));
+  var note = activeLocs.map(function(l){return l.label;}).join(', ');
+  if (c) note += ' · ' + c + ' color' + (c!==1?'s':'');
+  if (art) note += ' · ' + art;
+  document.getElementById('submit-note').textContent = note || 'Fill out the form above';
+}
+
+// ─────────────────────────────────────────────
+// VALIDATION
+// ─────────────────────────────────────────────
+function validate() {
+  var ok = true;
+
+  var seqEl = document.getElementById('job-seq');
+  var seqErr = document.getElementById('err-seq');
+  if (!seqEl.value.trim()) {
+    seqEl.classList.add('err'); seqErr.classList.add('show'); ok = false;
+  } else { seqEl.classList.remove('err'); seqErr.classList.remove('show'); }
+
+  var nameEl = document.getElementById('graphic-name');
+  var nameErr = document.getElementById('err-name');
+  if (!nameEl.value.trim()) {
+    nameEl.classList.add('err'); nameErr.classList.add('show'); ok = false;
+  } else { nameEl.classList.remove('err'); nameErr.classList.remove('show'); }
+
+  var colorEl = document.getElementById('body-color');
+  var colorErr = document.getElementById('err-color');
+  if (!colorEl.value.trim()) {
+    colorEl.classList.add('err'); colorErr.classList.add('show'); ok = false;
+  } else { colorEl.classList.remove('err'); colorErr.classList.remove('show'); }
+
+  var activeLocs = LOCS.filter(function(l) {
+    var c = document.getElementById('chk-' + l.id); return c && c.checked;
+  });
+  var locErr = document.getElementById('err-locations');
+  if (!activeLocs.length) { locErr.style.display = 'block'; ok = false; }
+  else { locErr.style.display = 'none'; }
+
+  // Check for empty color rows
+  var colorWarnings = [];
+  activeLocs.forEach(function(loc) {
+    var rows = document.querySelectorAll('#colors-' + loc.id + ' .color-row');
+    rows.forEach(function(r, i) {
+      var pms = r.querySelector('[data-field=pms]').value.trim();
+      if (!pms) colorWarnings.push(loc.label + ' layer ' + (i+1));
+    });
+  });
+  if (colorWarnings.length) {
+    alert('Some ink layers are missing PMS numbers:\n\n' + colorWarnings.join('\n') + '\n\nPlease fill in or remove empty color rows before generating.');
+    ok = false;
+  }
+
+  return ok;
+}
+
+// ─────────────────────────────────────────────
+// BUILD CONFIG JSON
+// ─────────────────────────────────────────────
+function buildConfig() {
+  var activeLocs = LOCS.filter(function(l) {
+    var c = document.getElementById('chk-' + l.id); return c && c.checked;
+  }).map(function(loc) {
+    return {
+      label:     loc.label,
+      placement: document.getElementById('placement-' + loc.id).value.trim(),
+      width:     document.getElementById('width-' + loc.id).value.trim(),
+      underbase: pillVal(document.getElementById('grp-under-' + loc.id)),
+      heatTap:   pillVal(document.getElementById('grp-heat-' + loc.id)),
+      colors:    getColors(loc.id),
+    };
+  });
+
+  return {
+    jobNum:       getJobNum(),
+    jobShort:     getJobShort(),
+    folderName:   getFolderName(),
+    graphicName:  document.getElementById('graphic-name').value.trim(),
+    garmentStyle: document.getElementById('garment-style').value,
+    bodyColor:    document.getElementById('body-color').value.trim(),
+    sizeRange:    document.getElementById('size-range').value,
+    license:      document.getElementById('license').value.trim() || 'Non-licensed',
+    artType:      pillVal(document.getElementById('grp-arttype')),
+    notes:        document.getElementById('notes').value.trim(),
+    locations:    activeLocs,
+    generated:    new Date().toISOString(),
+  };
+}
+
+// ─────────────────────────────────────────────
+// BUILD README
+// ─────────────────────────────────────────────
+function buildReadme(cfg) {
+  var lines = [];
+  lines.push('WIF TECH PACK — ' + cfg.jobNum);
+  lines.push('='.repeat(50));
+  lines.push('');
+  lines.push('Graphic:      ' + cfg.graphicName);
+  lines.push('Garment:      ' + cfg.bodyColor + ' ' + cfg.garmentStyle);
+  lines.push('Size range:   ' + cfg.sizeRange);
+  lines.push('License:      ' + cfg.license);
+  lines.push('Art type:     ' + cfg.artType);
+  lines.push('Generated:    ' + new Date().toLocaleString());
+  lines.push('');
+  lines.push('-'.repeat(50));
+  lines.push('PRINT LOCATIONS');
+  lines.push('-'.repeat(50));
+  cfg.locations.forEach(function(loc) {
+    lines.push('');
+    lines.push(loc.label.toUpperCase());
+    lines.push('  Placement:  ' + loc.placement);
+    lines.push('  Width:      ' + loc.width + '"');
+    lines.push('  Underbase:  ' + loc.underbase);
+    lines.push('  Heat tap:   ' + loc.heatTap);
+    lines.push('  Colors:');
+    loc.colors.forEach(function(c) {
+      lines.push('    Layer ' + c.layer + ': PMS ' + c.pms + (c.name ? '  (' + c.name + ')' : ''));
+    });
+  });
+  if (cfg.notes) {
+    lines.push('');
+    lines.push('-'.repeat(50));
+    lines.push('NOTES');
+    lines.push(cfg.notes);
+  }
+  lines.push('');
+  lines.push('-'.repeat(50));
+  lines.push('NEXT STEPS');
+  lines.push('-'.repeat(50));
+  if (cfg.artType === 'Texture') {
+    lines.push('1. Move this folder to server / Dropbox');
+    lines.push('2. Open your layered Photoshop file');
+    lines.push('3. File > Scripts > Browse → select WIF-SEPS-MASTER.jsx from WIF Tools folder');
+    lines.push('4. When prompted, locate job-config.json in this folder');
+    lines.push('5. Follow Color Range prompts for each ink color');
+    lines.push('6. Script exports .tif files to LINKS/ automatically');
+    lines.push('7. Open WIF-TP-TEMPLATE.ai');
+    lines.push('8. Place + embed each .tif on its matching layer');
+    lines.push('9. Fill header row and placement callouts');
+    lines.push('10. Ops uploads and sends Dropbox link to print shop');
+  } else {
+    lines.push('1. Move this folder to server / Dropbox');
+    lines.push('2. Open WIF-TP-TEMPLATE.ai');
+    lines.push('3. Follow vector separation steps from Tech Pack Guide');
+    lines.push('4. Fill header row and placement callouts');
+    lines.push('5. Ops uploads and sends Dropbox link to print shop');
+  }
+  return lines.join('\n');
+}
+
+// ─────────────────────────────────────────────
+// GENERATE ZIP
+// ─────────────────────────────────────────────
+function generate() {
+  if (!validate()) return;
+
+  var btn = document.getElementById('btn-generate');
+  btn.disabled = true;
+  btn.textContent = 'Building…';
+
+  var cfg = buildConfig();
+  var folder = cfg.folderName + '/';
+
+  var zip = new JSZip();
+  var root = zip.folder(cfg.folderName);
+
+  // job-config.json
+  root.file('job-config.json', JSON.stringify(cfg, null, 2));
+
+  // README.txt
+  root.file('README.txt', buildReadme(cfg));
+
+  // LINKS subfolder (empty placeholder)
+  root.folder('LINKS');
+
+  // Generate and trigger download
+  zip.generateAsync({ type: 'blob' }).then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = cfg.folderName + '.zip';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    btn.disabled = false;
+    btn.textContent = 'Generate & Download ZIP';
+    document.getElementById('success-banner').classList.add('show');
+    document.getElementById('success-banner').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }).catch(function(err) {
+    alert('Error generating zip: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = 'Generate & Download ZIP';
+  });
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+document.getElementById('btn-generate').addEventListener('click', generate);
+
+// Year dropdown
+var yearSel = document.getElementById('job-year');
+var thisYear = new Date().getFullYear();
+for (var y = thisYear; y <= thisYear + 2; y++) {
+  var opt = document.createElement('option');
+  opt.value = String(y).slice(2);
+  opt.textContent = y;
+  if (y === thisYear) opt.selected = true;
+  yearSel.appendChild(opt);
+}
+
+// Art type pill group
+bindPillGroup(document.getElementById('grp-arttype'));
+
+// Build location cards
+var wrap = document.getElementById('locations-wrap');
+LOCS.forEach(function(loc) {
+  wrap.appendChild(buildLocCard(loc));
+});
+
+// Field change listeners
+['job-year','job-month','job-seq','graphic-name','garment-style','body-color','size-range','license'].forEach(function(id) {
+  var el = document.getElementById(id);
+  if (el) { el.addEventListener('input', updateAll); el.addEventListener('change', updateAll); }
+});
+
+updateAll();
+</script>
+</body>
+</html>
